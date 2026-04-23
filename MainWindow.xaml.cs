@@ -179,7 +179,7 @@ namespace Sutra
                 TimeSpan remaining = _nextRssUpdate - DateTime.Now;
                 if (remaining.TotalSeconds > 0)
                 {
-                    RssTimerText.Text = $"Next update: {remaining.Minutes:D2}:{remaining.Seconds:D2}";
+                    RssTimerText.Text = $"RSS Next update: {remaining.Minutes:D2}:{remaining.Seconds:D2}";
                 }
                 else
                 {
@@ -239,16 +239,23 @@ namespace Sutra
                 {
                     SyndicationFeed feed = SyndicationFeed.Load(reader);
                     string safeName = string.Join("_", feed.Title.Text.Split(Path.GetInvalidFileNameChars()));
-                    string filePath = Path.Combine(_rssDataPath, $"{safeName}.csv"); // Changed to .csv
+                    string filePath = Path.Combine(_rssDataPath, $"{safeName}.csv");
 
                     var csvLines = new List<string>();
-                    // Add Header Row
                     csvLines.Add("Title,Link,Description,PubDate");
 
                     foreach (var item in feed.Items)
                     {
                         string title = EscapeCsv(item.Title.Text);
-                        string link = EscapeCsv(item.Links.FirstOrDefault()?.Uri.ToString());
+
+                        // ИСПРАВЛЕННАЯ ЛОГИКА ВЫБОРА ССЫЛКИ:
+                        // Ищем ссылку, которая является "alternate" (основной) 
+                        // и игнорируем те, что ведут на изображения (jpg, png и т.д.)
+                        var articleLink = item.Links.FirstOrDefault(l => l.RelationshipType == "alternate")
+                                          ?? item.Links.FirstOrDefault(l => l.MediaType == null);
+
+                        string link = EscapeCsv(articleLink?.Uri.ToString() ?? "");
+
                         string desc = EscapeCsv(item.Summary?.Text ?? "");
                         string date = EscapeCsv(item.PublishDate.ToString("yyyy-MM-dd HH:mm:ss"));
 
@@ -258,7 +265,7 @@ namespace Sutra
                     await File.WriteAllLinesAsync(filePath, csvLines);
                 }
             }
-            catch { /* Silent fail */ }
+            catch { /* Ошибка загрузки или парсинга */ }
         }
 
         // Helper to handle commas and quotes in content
@@ -272,86 +279,152 @@ namespace Sutra
         }
 
         private void ViewRss_Click(object sender, RoutedEventArgs e)
-{
-    var rssContainer = new ListBox
-    {
-        Margin = new Thickness(10),
-        HorizontalContentAlignment = HorizontalAlignment.Stretch,
-        BorderThickness = new Thickness(0)
-    };
-
-    if (Directory.Exists(_rssDataPath))
-    {
-        var files = Directory.GetFiles(_rssDataPath, "*.csv");
-        int itemIndex = 0;
-
-        foreach (var file in files)
         {
-            // Skip sources.csv if it exists
-            if (file.EndsWith("sources.csv")) continue;
-
-            var lines = File.ReadAllLines(file).Skip(1); 
-            foreach (var line in lines)
+            // 1. Setup the main container for the RSS feed list
+            var rssContainer = new ListBox
             {
-                var parts = line.Split(new[] { "\",\"" }, StringSplitOptions.None)
-                                .Select(p => p.Trim('\"')).ToArray();
+                Margin = new Thickness(10),
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                BorderThickness = new Thickness(0),
+                Background = System.Windows.Media.Brushes.Transparent
+            };
 
-                if (parts.Length < 4) continue;
+            if (Directory.Exists(_rssDataPath))
+            {
+                var files = Directory.GetFiles(_rssDataPath, "*.csv");
+                int itemIndex = 0;
 
-                var item = new RssStoredItem
+                foreach (var file in files)
                 {
-                    Title = parts[0],
-                    Link = parts[1],
-                    Description = parts[2],
-                    PubDate = DateTimeOffset.TryParse(parts[3], out var dt) ? dt : DateTimeOffset.Now
-                };
+                    // Skip the source configuration files
+                    if (file.EndsWith("sources.csv") || file.EndsWith("sources.json")) continue;
 
-                var bgColor = (itemIndex % 2 == 0) ? System.Windows.Media.Brushes.White : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 245, 245));
-                var rowBorder = new Border { Background = bgColor, Padding = new Thickness(5, 4, 5, 4), BorderThickness = new Thickness(0, 0, 0, 1), BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(230, 230, 230)) };
-                var rowGrid = new Grid();
-                rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(115) });
-                rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-                rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    // Read lines and skip the header (Title, Link, Description, PubDate)
+                    var lines = File.ReadAllLines(file).Skip(1);
+                    foreach (var line in lines)
+                    {
+                        // CSV Parsing: Split by "," and trim the surrounding quotes
+                        var parts = line.Split(new[] { "\",\"" }, StringSplitOptions.None)
+                                        .Select(p => p.Trim('\"')).ToArray();
 
-                rowGrid.Children.Add(new TextBlock { Text = item.PubDate.ToString("yyyy-MM-dd HH:mm"), Foreground = System.Windows.Media.Brushes.Gray, VerticalAlignment = VerticalAlignment.Center });
+                        if (parts.Length < 4) continue;
 
-                string domain = "Link";
-                try { domain = new Uri(item.Link).Host.Replace("www.", ""); } catch { }
-                var domBlock = new TextBlock { Text = domain, FontStyle = FontStyles.Italic, Foreground = System.Windows.Media.Brushes.DarkSlateGray, Margin = new Thickness(5, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
-                Grid.SetColumn(domBlock, 1); rowGrid.Children.Add(domBlock);
+                        var item = new RssStoredItem
+                        {
+                            Title = parts[0],
+                            Link = parts[1],
+                            Description = parts[2],
+                            PubDate = DateTimeOffset.TryParse(parts[3], out var dt) ? dt : DateTimeOffset.Now
+                        };
 
-                var titleBlock = new TextBlock { Text = item.Title, FontWeight = FontWeights.Medium, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(5, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
-                Grid.SetColumn(titleBlock, 2); rowGrid.Children.Add(titleBlock);
+                        // --- UI Construction for each Row ---
 
-                var link = new TextBlock { Text = "Read More", Foreground = System.Windows.Media.Brushes.Blue, TextDecorations = TextDecorations.Underline, Cursor = Cursors.Hand, Tag = item.Link, VerticalAlignment = VerticalAlignment.Center };
-                link.MouseDown += (s, ev) => AddNewTab(((TextBlock)s).Tag.ToString());
-                Grid.SetColumn(link, 3); rowGrid.Children.Add(link);
+                        // Alternating background colors for readability
+                        var bgColor = (itemIndex % 2 == 0)
+                            ? System.Windows.Media.Brushes.White
+                            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 245, 245));
 
-                rowBorder.Child = rowGrid;
-                rssContainer.Items.Add(rowBorder);
-                itemIndex++;
+                        var rowBorder = new Border
+                        {
+                            Background = bgColor,
+                            Padding = new Thickness(5, 8, 5, 8),
+                            BorderThickness = new Thickness(0, 0, 0, 1),
+                            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(230, 230, 230))
+                        };
+
+                        var rowGrid = new Grid();
+                        rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(115) }); // Date column
+                        rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) }); // Domain column
+                        rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Title column
+
+                        // Column 0: Date
+                        rowGrid.Children.Add(new TextBlock
+                        {
+                            Text = item.PubDate.ToString("yyyy-MM-dd HH:mm"),
+                            Foreground = System.Windows.Media.Brushes.Gray,
+                            VerticalAlignment = VerticalAlignment.Center
+                        });
+
+                        // Column 1: Domain Extraction Logic (The Fix)
+                        string domain = "source";
+                        if (!string.IsNullOrEmpty(item.Link) && Uri.TryCreate(item.Link, UriKind.Absolute, out var uri))
+                        {
+                            domain = uri.Host.ToLower().Replace("www.", "");
+                        }
+
+                        var domBlock = new TextBlock
+                        {
+                            Text = domain, // Prints only the clean domain
+                            FontWeight = FontWeights.Bold,
+                            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(2, 136, 209)),
+                            Margin = new Thickness(5, 0, 5, 0),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Cursor = Cursors.Hand,
+                            TextTrimming = TextTrimming.CharacterEllipsis
+                        };
+                        domBlock.MouseDown += (s, ev) => AddNewTab(item.Link);
+
+                        Grid.SetColumn(domBlock, 1);
+                        rowGrid.Children.Add(domBlock);
+
+                        // Column 2: Article Title
+                        var titleBlock = new TextBlock
+                        {
+                            Text = item.Title,
+                            FontWeight = FontWeights.Medium,
+                            TextTrimming = TextTrimming.CharacterEllipsis,
+                            Margin = new Thickness(5, 0, 10, 0),
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Cursor = Cursors.Hand
+                        };
+                        titleBlock.MouseDown += (s, ev) => AddNewTab(item.Link);
+                        titleBlock.MouseEnter += (s, ev) => titleBlock.TextDecorations = TextDecorations.Underline;
+                        titleBlock.MouseLeave += (s, ev) => titleBlock.TextDecorations = null;
+
+                        Grid.SetColumn(titleBlock, 2);
+                        rowGrid.Children.Add(titleBlock);
+
+                        rowBorder.Child = rowGrid;
+                        rssContainer.Items.Add(rowBorder);
+                        itemIndex++;
+                    }
+                }
             }
+
+            // --- Tab Creation Logic ---
+
+            var headerStack = new StackPanel { Orientation = Orientation.Horizontal };
+            headerStack.Children.Add(new TextBlock { Text = "RSS Reader", VerticalAlignment = VerticalAlignment.Center });
+
+            var closeBtn = new Button
+            {
+                Style = (Style)this.Resources["TabCloseButtonStyle"],
+                Content = "✕",
+                Margin = new Thickness(10, 0, 0, 0),
+                Cursor = Cursors.Hand
+            };
+            headerStack.Children.Add(closeBtn);
+
+            var rssTab = new TabItem
+            {
+                Header = headerStack,
+                Content = rssContainer,
+                Tag = "RSS_TAB"
+            };
+
+            closeBtn.Click += (s, ev) =>
+            {
+                BrowserTabs.Items.Remove(rssTab);
+                ev.Handled = true;
+            };
+
+            BrowserTabs.Items.Add(rssTab);
+            BrowserTabs.SelectedItem = rssTab;
         }
-    } // End of Directory.Exists check
 
-    // TAB CREATION LOGIC (Now correctly inside the method)
-    var headerStack = new StackPanel { Orientation = Orientation.Horizontal };
-    headerStack.Children.Add(new TextBlock { Text = "RSS Reader", VerticalAlignment = VerticalAlignment.Center });
-    var closeBtn = new Button { Style = (Style)this.Resources["TabCloseButtonStyle"], Content = "✕", Margin = new Thickness(10, 0, 0, 0), Cursor = Cursors.Hand };
-    headerStack.Children.Add(closeBtn);
 
-    var rssTab = new TabItem { 
-        Header = headerStack, 
-        Content = rssContainer,
-        Tag = "RSS_TAB" // Set Tag for identification
-    };
-    
-    closeBtn.Click += (s, ev) => { BrowserTabs.Items.Remove(rssTab); ev.Handled = true; };
 
-    BrowserTabs.Items.Add(rssTab);
-    BrowserTabs.SelectedItem = rssTab;
-}
+
 
         #endregion
 

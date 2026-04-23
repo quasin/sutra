@@ -29,12 +29,33 @@
 
         <Border Grid.Column="0" Background="#F3F3F3" BorderBrush="#DDD" BorderThickness="0,0,1,0">
             <StackPanel Margin="10">
-                <TextBlock Text="Sutra Sidebar" FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
-                <Button Content="New Tab" Click="NewTab_Click" Margin="0,5" Padding="5"/>
-                <TextBlock Text="Bookmarks" Margin="0,10,0,5" Foreground="Gray"/>
-                <Button Content="Google" Click="SidebarBookmark_Click" Tag="https://www.google.com" Margin="0,2"/>
-                <Button Content="GitHub" Click="SidebarBookmark_Click" Tag="https://www.github.com" Margin="0,2"/>
-                <TextBlock Text="RSS Feed" Margin="0,15,0,5" Foreground="Gray"/>
+                <Grid Margin="0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0" 
+                            Content="New Tab"
+                            Click="NewTab_Click"
+                            Margin="1,0,0,0"
+                            FontSize="11"
+                            Padding="1"/>
+                    <Button Grid.Column="1"
+                            Content="Google"
+                            Click="SidebarBookmark_Click"
+                            Tag="https://www.google.com"
+                            Margin="1,0,0,0"
+                            FontSize="11"
+                            Padding="1"/>
+                    <Button Grid.Column="2" 
+                     Content="Gemini" 
+                     Click="SidebarBookmark_Click"
+                     Tag="https://gemini.google.com"
+                     Margin="1,0,0,0"
+                     FontSize="11"
+                     Padding="1"/>
+                </Grid>
                 <TextBlock x:Name="RssTimerText" Text="Updating in: --:--" FontSize="11" Foreground="#0288D1" Margin="0,0,0,5"/>
                 <TextBox x:Name="RssUrlInput" Margin="0,2" ToolTip="Enter RSS URL"/>
                 <Grid Margin="0,5">
