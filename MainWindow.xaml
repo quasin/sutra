@@ -35,26 +35,9 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <Button Grid.Column="0" 
-                            Content="New Tab"
-                            Click="NewTab_Click"
-                            Margin="1,0,0,0"
-                            FontSize="11"
-                            Padding="1"/>
-                    <Button Grid.Column="1"
-                            Content="Alice"
-                            Click="SidebarBookmark_Click"
-                            Tag="https://alice.yandex.ru"
-                            Margin="1,0,0,0"
-                            FontSize="11"
-                            Padding="1"/>
-                    <Button Grid.Column="2" 
-                     Content="Gemini" 
-                     Click="SidebarBookmark_Click"
-                     Tag="https://gemini.google.com"
-                     Margin="1,0,0,0"
-                     FontSize="11"
-                     Padding="1"/>
+                    <Button Grid.Column="0" Content="New Tab" Click="NewTab_Click" Margin="1" FontSize="11" Padding="1"/>
+                    <Button Grid.Column="1" Content="Alice" Click="SidebarBookmark_Click" Tag="https://alice.yandex.ru" Margin="1" FontSize="11" Padding="1"/>
+                    <Button Grid.Column="2" Content="Gemini" Click="SidebarBookmark_Click" Tag="https://gemini.google.com" Margin="1" FontSize="11" Padding="1"/>
                 </Grid>
                 <TextBlock x:Name="RssTimerText" Text="Updating in: --:--" FontSize="11" Foreground="#0288D1" Margin="0,0,0,5"/>
                 <TextBox x:Name="RssUrlInput" Margin="0,2" ToolTip="Enter RSS URL"/>
@@ -64,29 +47,9 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-
-                    <Button Grid.Column="0" 
-                     Content="Subscribe" 
-                     Click="SubscribeRss_Click" 
-                     Margin="0,0,1,0" 
-                     Padding="1"
-                     FontSize="11"
-                     Background="#E1F5FE"/>
-
-                    <Button Grid.Column="1" 
-                     Content="Reader" 
-                     Click="ViewRss_Click" 
-                     Margin="1,0,1,0"
-                     FontSize="11"
-                     Padding="1"/>
-
-                    <Button Grid.Column="2" 
-                     Content="Update" 
-                     Click="UpdateRss_Click" 
-                     Margin="1,0,0,0"
-                     FontSize="11"
-                     Padding="1"
-                     Background="#E8F5E9"/>
+                    <Button Grid.Column="0" Content="Subscribe" Click="SubscribeRss_Click" Margin="0,0,1,0" Padding="1" FontSize="11" Background="#E1F5FE"/>
+                    <Button Grid.Column="1" Content="Reader" Click="ViewRss_Click" Margin="1,0,1,0" FontSize="11" Padding="1"/>
+                    <Button Grid.Column="2" Content="Update" Click="UpdateRss_Click" Margin="1,0,0,0" FontSize="11" Padding="1" Background="#E8F5E9"/>
                 </Grid>
             </StackPanel>
         </Border>
@@ -103,16 +66,12 @@
                     <Button Content="→" Width="30" Margin="2" Click="Forward_Click"/>
                     <Button Content="↻" Width="30" Margin="2" Click="Reload_Click"/>
                     <Button Content="⌂" Width="30" Margin="2" Click="Home_Click"/>
-
-                    <TextBox x:Name="UrlTextBox" Width="500" Margin="5,2" VerticalContentAlignment="Center" 
-                 KeyDown="UrlTextBox_KeyDown"/>
-
+                    <TextBox x:Name="UrlTextBox" Width="500" Margin="5,2" VerticalContentAlignment="Center" KeyDown="UrlTextBox_KeyDown"/>
                     <Button Content="Go" Width="50" Margin="2" Click="Go_Click"/>
                 </StackPanel>
             </Border>
 
-            <TabControl x:Name="BrowserTabs" Grid.Row="1">
-            </TabControl>
+            <TabControl x:Name="BrowserTabs" Grid.Row="1"/>
         </Grid>
     </Grid>
 </Window>
